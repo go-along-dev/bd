@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from app.schemas.common import PaginatedResponse, MessageResponse, ErrorResponse, HealthResponse
 from app.schemas.auth import AuthSyncRequest, AuthSyncResponse, FCMTokenRequest, FCMTokenResponse
 from app.schemas.user import UserResponse, UserUpdateRequest
@@ -52,3 +53,9 @@ __all__ = [
     "ChatHistoryResponse",
     "UnreadCountResponse",
 ]
+=======
+# Schemas package — Pydantic V2 request/response models.
+# See: system-design/10-api-contracts.md for every field, type, and validation rule.
+#
+# work by adolf.
+>>>>>>> 0e6b5450dd33373090fa841d0d339a07852dc2d5

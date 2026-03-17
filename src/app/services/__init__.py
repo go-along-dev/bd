@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from app.services import auth_service
 from app.services import user_service
 from app.services import driver_service
@@ -23,3 +24,10 @@ __all__ = [
     "chat_service",
     "notification_service",
 ]
+=======
+# Services package — Business logic layer.
+# ALL business logic lives here. Routers are thin wrappers.
+# See: 00-architecture.md §8 note 4 — "One service per module."
+#
+# work by adolf.
+>>>>>>> 0e6b5450dd33373090fa841d0d339a07852dc2d5
