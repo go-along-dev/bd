@@ -9,7 +9,6 @@ Run once:
 
 import asyncio
 import httpx
-import json
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
@@ -126,7 +125,7 @@ async def seed_tolls(db: AsyncSession, elements: list[dict]):
 
     # Final commit
     await db.commit()
-    print(f"\n✅ Seeding complete!")
+    print("\n✅ Seeding complete!")
     print(f"   Inserted : {inserted}")
     print(f"   Skipped  : {skipped} (no location or duplicates)")
 

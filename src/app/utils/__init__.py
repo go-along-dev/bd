@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from app.utils.exceptions import (
     AppException,
     app_exception_handler,
@@ -91,6 +90,3 @@ __all__ = [
     "mask_email",
     "mask_phone",
 ]
-=======
-# work by adolf.
->>>>>>> 0e6b5450dd33373090fa841d0d339a07852dc2d5
