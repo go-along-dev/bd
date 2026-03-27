@@ -24,16 +24,16 @@ async def get_config(db: AsyncSession, key: str, default: str) -> str:
 # ─── Get or Create Wallet ─────────────────────
 async def get_or_create_wallet(
     db: AsyncSession,
-    driver_id: UUID,
+    user_id: UUID,
 ) -> Wallet:
     """Returns driver wallet. Creates one with balance=0 if not exists."""
     result = await db.execute(
-        select(Wallet).where(Wallet.driver_id == driver_id)
+        select(Wallet).where(Wallet.user_id == user_id)
     )
     wallet = result.scalar_one_or_none()
 
     if not wallet:
-        wallet = Wallet(driver_id=driver_id, balance=Decimal("0.00"))
+        wallet = Wallet(user_id=user_id, balance=Decimal("0.00"))
         db.add(wallet)
         await db.commit()
         await db.refresh(wallet)
@@ -70,7 +70,7 @@ async def get_transactions(
 # ─── Request Cashback ─────────────────────────
 async def request_cashback(
     db: AsyncSession,
-    driver_id: UUID,
+    user_id: UUID,
     wallet: Wallet,
     ride_id: UUID,
     amount: Decimal,

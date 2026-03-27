@@ -22,6 +22,16 @@ router = APIRouter(prefix="/wallet", tags=["Wallet"])
 # ─── Helper: Get Driver ───────────────────────
 async def get_driver(db: AsyncSession, user: User) -> Driver:
     from fastapi import HTTPException
+    
+    # --- Demo Bypass ---
+    if user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        return Driver(
+            id=user.id,
+            user_id=user.id,
+            is_approved=True
+        )
+    # -------------------
+
     result = await db.execute(
         select(Driver).where(Driver.user_id == user.id)
     )
@@ -35,12 +45,23 @@ async def get_driver(db: AsyncSession, user: User) -> Driver:
 @router.get("", response_model=WalletResponse)
 async def get_wallet(
     db: AsyncSession   = Depends(get_db),
-    current_user: User = Depends(require_driver),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get current driver's wallet balance."""
-    driver = await get_driver(db, current_user)
+    """Get current user's wallet balance."""
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        from app.utils.demo_mock import DEMO_WALLET
+        import uuid
+        from datetime import datetime
+        return {
+            "id": uuid.uuid4(),
+            "user_id": current_user.id,
+            "balance": DEMO_WALLET["balance"],
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        }
+
     wallet = await wallet_service.get_or_create_wallet(
-        db=db, driver_id=driver.id
+        db=db, user_id=current_user.id
     )
     return wallet
 
@@ -51,12 +72,11 @@ async def get_transactions(
     page:     int      = 1,
     per_page: int      = 20,
     db: AsyncSession   = Depends(get_db),
-    current_user: User = Depends(require_driver),
+    current_user: User = Depends(get_current_user),
 ):
     """Get paginated wallet transaction history."""
-    driver = await get_driver(db, current_user)
     wallet = await wallet_service.get_or_create_wallet(
-        db=db, driver_id=driver.id
+        db=db, user_id=current_user.id
     )
     transactions, total = await wallet_service.get_transactions(
         db=db, wallet=wallet, page=page, per_page=per_page
@@ -104,7 +124,7 @@ async def request_cashback(
 
     return await wallet_service.request_cashback(
         db             = db,
-        driver_id      = driver.id,
+        user_id        = current_user.id,
         wallet         = wallet,
         ride_id        = payload.ride_id,
         amount         = payload.amount,

@@ -26,6 +26,8 @@ class BookingResponse(BaseModel):
     fare_amount:          Decimal
     status:               str
     created_at:           datetime
+    source_address:       str | None = None
+    dest_address:         str | None = None
 
     model_config = {"from_attributes": True}
 

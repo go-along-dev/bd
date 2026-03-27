@@ -22,9 +22,9 @@ class Wallet(Base):
 
     # ─── Owner ────────────────────────────────
     # One wallet per user
-    driver_id       = Column(
+    user_id       = Column(
                         UUID(as_uuid=True),
-                        ForeignKey("drivers.id"),
+                        ForeignKey("users.id"),
                         nullable=False,
                         unique=True
                     )
@@ -51,7 +51,7 @@ class Wallet(Base):
     )
 
     # ─── Relationships ────────────────────────
-    driver          = relationship("Driver", back_populates="wallet")
+    user          = relationship("User", back_populates="wallet")
     transactions    = relationship(
                         "WalletTransaction",
                         back_populates="wallet",

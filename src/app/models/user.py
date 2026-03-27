@@ -56,8 +56,7 @@ class User(Base):
         Index("idx_users_supabase_uid", "supabase_uid"),
     )
 
- # ─── Relationships ────────────────────────
-    # NOTE: wallet is on Driver, NOT User
+    wallet      = relationship("Wallet",  back_populates="user", uselist=False)
     # NOTE: rides is on Driver, NOT User
     driver      = relationship("Driver",  back_populates="user", uselist=False)
     bookings    = relationship("Booking", back_populates="passenger")

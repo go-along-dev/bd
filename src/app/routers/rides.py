@@ -21,6 +21,17 @@ router = APIRouter(prefix="/rides", tags=["Rides"])
 
 # ─── Helper: Get Driver ───────────────────────
 async def get_driver(db: AsyncSession, user: User) -> Driver:
+    # --- Demo Bypass ---
+    if user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        return Driver(
+            id=user.id, # Using user.id as driver.id for mock
+            user_id=user.id,
+            vehicle_model="Demo Car",
+            vehicle_number="GA-000-DEMO",
+            is_approved=True
+        )
+    # -------------------
+
     result = await db.execute(
         select(Driver).where(Driver.user_id == user.id)
     )
@@ -58,8 +69,41 @@ async def create_ride(
     current_user: User = Depends(require_driver),
 ):
     """Create a new ride. Driver must be approved."""
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        from app.utils.demo_mock import DEMO_RIDES
+        from decimal import Decimal
+        import uuid
+        from datetime import datetime, timezone
+        
+        # In-memory storage for Demo
+        ride_id = uuid.uuid4()
+        mock_ride = {
+            "id":                 ride_id,
+            "driver_name":        current_user.name,
+            "vehicle_info":       "Demo Car · White · GA-000-DEMO",
+            "source_address":     payload.source_address,
+            "source_lat":         payload.source_lat,
+            "source_lng":         payload.source_lng,
+            "dest_address":       payload.dest_address,
+            "dest_lat":           payload.dest_lat,
+            "dest_lng":           payload.dest_lng,
+            "total_distance_km":  Decimal("45.5"),
+            "estimated_duration": 65,
+            "departure_time":     payload.departure_time,
+            "total_seats":        payload.total_seats,
+            "available_seats":    payload.total_seats,
+            "per_seat_fare":      Decimal("350.00"),
+            "total_fare":         Decimal("350.00"),
+            "status":             "booking_open",
+            "created_at":         datetime.now(timezone.utc),
+            "route_geometry":     None,
+        }
+        DEMO_RIDES.insert(0, mock_ride) # Head first
+        return mock_ride
+
     driver = await get_driver(db, current_user)
-    return await ride_service.create_ride(db=db, driver=driver, data=payload)
+    ride = await ride_service.create_ride(db=db, driver=driver, data=payload)
+    return ride_service.build_ride_response(ride)
 
 
 # ─── GET /rides (search) ──────────────────────
@@ -76,6 +120,10 @@ async def search_rides(
     current_user: User = Depends(get_current_user),
 ):
     """Search rides by location and date using bounding box algorithm."""
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        from app.utils.demo_mock import DEMO_RIDES
+        return DEMO_RIDES # Return everything for the demo
+
     params = RideSearchParams(
         source_lat = source_lat,
         source_lng = source_lng,
@@ -85,7 +133,8 @@ async def search_rides(
         seats      = seats,
         radius_km  = radius_km,
     )
-    return await ride_service.search_rides(db=db, params=params)
+    rides = await ride_service.search_rides(db=db, params=params)
+    return [ride_service.build_ride_response(r) for r in rides]
 
 
 # ─── GET /rides/my-rides ──────────────────────
@@ -96,6 +145,15 @@ async def get_my_rides(
     pagination: dict        = Depends(get_pagination),
 ):
     """Get all rides created by current driver."""
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        from app.utils.demo_mock import DEMO_RIDES
+        return {
+            "data":     DEMO_RIDES,
+            "total":    len(DEMO_RIDES),
+            "page":     1,
+            "per_page": 20,
+        }
+
     driver = await get_driver(db, current_user)
     rides, total = await ride_service.get_driver_rides(
         db       = db,
@@ -104,7 +162,7 @@ async def get_my_rides(
         per_page = pagination["per_page"],
     )
     return {
-        "data":     [RideResponse.model_validate(r) for r in rides],
+        "data":     [ride_service.build_ride_response(r) for r in rides],
         "total":    total,
         "page":     pagination["page"],
         "per_page": pagination["per_page"],
@@ -118,6 +176,12 @@ async def geocode(
     current_user: User = Depends(get_current_user),
 ):
     """Geocode an address using Nominatim (India only)."""
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        return [
+            {"display_name": f"{q}, Demo City, GA", "lat": 13.0827, "lng": 80.2707},
+            {"display_name": f"{q} Downtown, Demo City", "lat": 12.9716, "lng": 77.5946},
+        ]
+
     return await ride_service.geocode(query=q)
 
 
@@ -132,7 +196,7 @@ async def get_ride(
     ride = await ride_service.get_ride_by_id(db=db, ride_id=ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
-    return ride
+    return ride_service.build_ride_response(ride)
 
 
 # ─── GET /rides/{ride_id}/bookings ────────────
@@ -160,7 +224,8 @@ async def update_ride(
     """Update ride. Cannot change departure_time if bookings exist."""
     driver = await get_driver(db, current_user)
     ride   = await get_owned_ride(ride_id, db, driver)
-    return await ride_service.update_ride(db=db, ride=ride, data=payload)
+    updated_ride = await ride_service.update_ride(db=db, ride=ride, data=payload)
+    return ride_service.build_ride_response(updated_ride)
 
 
 # ─── DELETE /rides/{ride_id} ──────────────────
@@ -187,7 +252,8 @@ async def depart_ride(
     """Mark ride as departed. No new bookings accepted."""
     driver = await get_driver(db, current_user)
     ride   = await get_owned_ride(ride_id, db, driver)
-    return await ride_service.depart_ride(db=db, ride=ride)
+    departed_ride = await ride_service.depart_ride(db=db, ride=ride)
+    return ride_service.build_ride_response(departed_ride)
 
 
 # ─── POST /rides/{ride_id}/complete ──────────
@@ -203,4 +269,5 @@ async def complete_ride(
     """
     driver = await get_driver(db, current_user)
     ride   = await get_owned_ride(ride_id, db, driver)
-    return await ride_service.complete_ride(db=db, ride=ride)
+    completed_ride = await ride_service.complete_ride(db=db, ride=ride)
+    return ride_service.build_ride_response(completed_ride)

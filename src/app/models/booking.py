@@ -89,3 +89,11 @@ class Booking(Base):
     # NOTE: passenger cannot book their own ride — enforced in service layer
     ride            = relationship("Ride",  back_populates="bookings")
     passenger       = relationship("User",  back_populates="bookings")
+
+    @property
+    def source_address(self):
+        return self.ride.source_address if self.ride else None
+
+    @property
+    def dest_address(self):
+        return self.ride.dest_address if self.ride else None

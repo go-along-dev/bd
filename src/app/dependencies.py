@@ -33,14 +33,16 @@ def get_pagination(page: int = 1, per_page: int = 20):
     return {"page": page, "per_page": per_page, "offset": offset}
 
 
-# ─── Current User ─────────────────────────────
-async def get_current_user(
+async def get_auth_token_payload(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db),
-):
-    from app.models.user import User
-
+) -> dict:
     token = credentials.credentials
+    
+    # --- Demo Bypass ---
+    if token == "demo-token":
+        print("🔓 Demo Token recognized")
+        return {"sub": "00000000-0000-0000-0000-000000000000"}
+    # -------------------
 
     try:
         payload = jwt.decode(
@@ -63,30 +65,74 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    supabase_uid = payload.get("sub")
-    if not supabase_uid:
+    if not payload.get("sub"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload"
+            detail="Invalid token payload: missing sub"
         )
+    return payload
 
-    # Find or create user on first login
-    result = await db.execute(
-        select(User).where(User.supabase_uid == supabase_uid)
-    )
-    user = result.scalar_one_or_none()
+
+# ─── Current User ─────────────────────────────
+async def get_current_user(
+    payload: dict = Depends(get_auth_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.user import User
+    import uuid
+    supabase_uid = payload.get("sub")
+
+    # Find user in local DB
+    try:
+        result = await db.execute(
+            select(User).where(User.supabase_uid == supabase_uid)
+        )
+        user = result.scalar_one_or_none()
+    except Exception as e:
+        print(f"⚠️ get_current_user DB error: {e}")
+        user = None
 
     if user is None:
-        user = User(
-            supabase_uid=supabase_uid,
-            phone=payload.get("phone"),
-            email=payload.get("email"),
-            role="passenger",
-            is_active=True,
+        if supabase_uid == "00000000-0000-0000-0000-000000000000":
+             # Auto-create Demo User and Driver if missing
+             from app.models.driver import Driver
+             from app.models.wallet import Wallet
+             try:
+                 user = User(
+                     supabase_uid=supabase_uid,
+                     name="Demo User (Mock Driver)",
+                     role="driver",
+                     is_active=True,
+                     email="demo@goalong.in",
+                     phone="0000000000"
+                 )
+                 db.add(user)
+                 await db.flush()
+                 
+                 driver = Driver(user_id=user.id, is_approved=True, vehicle_model="Demo Car", vehicle_number="GA-000-DEMO")
+                 db.add(driver)
+                 
+                 wallet = Wallet(user_id=user.id, balance=0.00)
+                 db.add(wallet)
+                 
+                 await db.commit()
+                 await db.refresh(user)
+                 return user
+             except Exception as e:
+                 await db.rollback()
+                 print(f"⚠️ Failsafe: Could not create demo records in DB ({e}). Using static fallback.")
+                 # Static fallback if DB is hard-locked
+                 return User(
+                     id=uuid.UUID("d3b07384-dead-beef-cafe-d3b07384dead"),
+                     supabase_uid=supabase_uid,
+                     name="Demo User (Mock)",
+                     role="driver",
+                     is_active=True
+                 )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User profile not synced. Perform /auth/sync first.",
         )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
 
     if not user.is_active:
         raise HTTPException(

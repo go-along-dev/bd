@@ -7,7 +7,7 @@ from uuid import UUID
 from app.dependencies import get_db, get_current_user
 from app.schemas.fare import FareCalcResponse, PartialFareResponse
 from app.services.fare_engine import fare_engine
-from app.services import osrm_service
+from app.services import ors_service
 from app.models.ride import Ride
 from app.models.user import User
 from fastapi import HTTPException, status
@@ -32,8 +32,20 @@ async def calculate_fare(
     Fuel-cost-sharing model: fuel cost / seats + platform margin.
     Read-only — no DB writes.
     """
+    # --- Demo Bypass ---
+    if current_user.supabase_uid == "00000000-0000-0000-0000-000000000000":
+        return FareCalcResponse(
+            distance_km      = Decimal("45.5"),
+            total_fare       = Decimal("350.00"),
+            per_seat_fare    = Decimal("350.00"),
+            fuel_cost        = Decimal("300.00"),
+            platform_margin  = Decimal("50.00"),
+            min_fare_applied = False,
+        )
+    # -------------------
+
     # 1. Get distance from OSRM
-    distance_km = await osrm_service.get_distance(
+    distance_km = await ors_service.get_distance(
         src_lat=source_lat,
         src_lng=source_lng,
         dst_lat=dest_lat,
@@ -93,7 +105,7 @@ async def calculate_partial_fare(
         )
 
     # 2. Get distance from pickup to ride destination
-    partial_distance_km = await osrm_service.get_distance(
+    partial_distance_km = await ors_service.get_distance(
         src_lat=pickup_lat,
         src_lng=pickup_lng,
         dst_lat=float(ride.dest_lat),

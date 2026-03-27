@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.db.postgres import engine
 from app.db.mongo import connect_mongo, close_mongo
-from app.services import osrm_service
+from app.services import ors_service
 from app.middleware.logging import TracingMiddleware, configure_logging
 from app.middleware.auth import AuthMiddleware
 from app.utils.exceptions import AppException, app_exception_handler
@@ -22,11 +22,15 @@ from app.routers import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
-    await connect_mongo()
+    try:
+        await connect_mongo()
+        print("✅ MongoDB connected")
+    except Exception as e:
+        print(f"⚠️ MongoDB connection failed: {e}. Chat services will be unavailable.")
     print("✅ GoAlong API started")
     yield
     await close_mongo()
-    await osrm_service.close_client()
+    await ors_service.close_client()
     print("🔴 GoAlong API stopped")
 
 

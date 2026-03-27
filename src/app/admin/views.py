@@ -12,6 +12,7 @@ from app.models.booking import Booking
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 from app.models.platform_config import PlatformConfig
+from app.models.payment import Payment
 from app.config import settings
 
 
@@ -109,7 +110,7 @@ class WalletAdmin(ModelView, model=Wallet):
     name        = "Wallet"
     name_plural = "Wallets"
     icon        = "fa-solid fa-wallet"
-    column_list = [Wallet.id, Wallet.driver_id, Wallet.balance, Wallet.created_at]
+    column_list = [Wallet.id, Wallet.user_id, Wallet.balance, Wallet.created_at]
     can_create  = False
     can_delete  = False
 
@@ -145,6 +146,22 @@ class PlatformConfigAdmin(ModelView, model=PlatformConfig):
     can_delete  = False
 
 
+# ─── Payment Admin ────────────────────────────
+class PaymentAdmin(ModelView, model=Payment):
+    name           = "Payment"
+    name_plural    = "Payments"
+    icon           = "fa-solid fa-credit-card"
+    column_list    = [
+        Payment.id, Payment.booking_id,
+        Payment.amount, Payment.currency,
+        Payment.status, Payment.payment_method,
+        Payment.paid_at, Payment.created_at,
+    ]
+    column_filters = [Payment.status]
+    can_create     = False
+    can_delete     = False
+
+
 # ─── Setup Admin ──────────────────────────────
 def setup_admin(app: FastAPI, engine: AsyncEngine) -> Admin:
     auth_backend = AdminAuth(secret_key=settings.SECRET_KEY)
@@ -165,5 +182,6 @@ def setup_admin(app: FastAPI, engine: AsyncEngine) -> Admin:
     admin.add_view(WalletAdmin)
     admin.add_view(WalletTransactionAdmin)
     admin.add_view(PlatformConfigAdmin)
+    admin.add_view(PaymentAdmin)
 
     return admin

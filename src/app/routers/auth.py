@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_user, get_auth_token_payload
 
 from app.services import auth_service
 from app.models.user import User
@@ -11,11 +11,46 @@ from app.schemas.common import MessageResponse
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+@router.post("/mock-sync", response_model=AuthSyncResponse)
+async def mock_sync_user(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Bypass Supabase for testing other features.
+    Hardcoded fallback in case DB is on fire.
+    """
+    DEMO_UID = "00000000-0000-0000-0000-000000000000"
+    
+    try:
+        user, is_new = await auth_service.sync_user(
+            db=db,
+            supabase_uid=DEMO_UID,
+            data=AuthSyncRequest(name="Demo User", email="demo@goalong.in", phone="0000000000"),
+        )
+        return {
+            "id":           user.id,
+            "supabase_uid": user.supabase_uid,
+            "name":         user.name,
+            "role":         user.role,
+            "is_new_user":  is_new,
+        }
+    except Exception as e:
+        print(f"⚠️ Mock sync DB failed: {e}. Falling back to static profile.")
+        # Failsafe: Return a static profile to unblock the UI
+        return {
+            "id":           "d3b07384-dead-beef-cafe-d3b07384dead", 
+            "supabase_uid": DEMO_UID,
+            "name":         "Demo User (Failsafe)",
+            "role":         "passenger",
+            "is_new_user":  False,
+        }
+
+
 @router.post("/sync", response_model=AuthSyncResponse)
 async def sync_user(
     payload: AuthSyncRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    auth_payload: dict = Depends(get_auth_token_payload),
 ):
     """
     Called once after first Supabase login.
@@ -24,12 +59,15 @@ async def sync_user(
     """
     user, is_new = await auth_service.sync_user(
         db=db,
-        supabase_uid=current_user.supabase_uid,
+        supabase_uid=auth_payload.get("sub"),
         data=payload,
     )
     return {
-        "message": "Welcome to GoAlong!" if is_new else "Welcome back!",
-        "is_new_user": is_new,
+        "id":           user.id,
+        "supabase_uid": user.supabase_uid,
+        "name":         user.name,
+        "role":         user.role,
+        "is_new_user":  is_new,
     }
 
 

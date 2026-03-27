@@ -94,5 +94,3 @@ class Driver(Base):
     documents   = relationship("DriverDocument", back_populates="driver",
                     cascade="all, delete-orphan")
     rides       = relationship("Ride",           back_populates="driver")
-    wallet      = relationship("Wallet",         back_populates="driver",
-                    uselist=False)

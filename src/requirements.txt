@@ -1,48 +1,53 @@
-# =============================================================================
-# requirements.txt — Python Dependencies
-# =============================================================================
-# See: system-design/00-architecture.md §3 "Tech Stack" for why each is chosen
-#
-# TODO: Pin exact versions once development begins.
-#       Use: pip freeze > requirements.txt after installing.
-# =============================================================================
+# ─── Web Framework ────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
 
-# --- Framework ---
-fastapi
-uvicorn[standard]
-pydantic[email]
-pydantic-settings
+# ─── Database ─────────────────────────────────
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg2-binary==2.9.11
 
-# --- Database (PostgreSQL via Supabase) ---
-sqlalchemy[asyncio]
-asyncpg
-alembic
+# ─── MongoDB ──────────────────────────────────
+motor==3.6.0
 
-# --- Database (MongoDB for chat) ---
-motor
+# ─── Supabase ─────────────────────────────────
+supabase==2.10.0
+python-jose[cryptography]==3.3.0
+PyJWT==2.8.0
+cryptography==42.0.5
 
-# --- Auth ---
-PyJWT
-cryptography
+# ─── Config ───────────────────────────────────
+pydantic-settings==2.6.1
+pydantic[email]==2.10.3
+python-dotenv==1.0.1
 
-# --- Admin Panel ---
-sqladmin
+# ─── HTTP Client ──────────────────────────────
+httpx==0.27.2
 
-# --- HTTP Client (for OSRM, Nominatim, Supabase Storage API) ---
-httpx
+# ─── Geometry ─────────────────────────────────
+shapely==2.0.6
 
-# --- Push Notifications ---
-firebase-admin
+# ─── Admin Panel ──────────────────────────────
+sqladmin==0.19.0
+itsdangerous==2.2.0
 
-# --- Rate Limiting ---
-slowapi
+# ─── Push Notifications ───────────────────────
+firebase-admin==6.6.0
 
-# --- Logging ---
-structlog
+# ─── Payments ─────────────────────────────────
+razorpay==1.4.1
 
-# --- Testing ---
-pytest
-pytest-asyncio
-httpx  # also used as test client for FastAPI
+# ─── Rate Limiting ────────────────────────────
+slowapi==0.1.9
 
-# work by adolf.
+# ─── Logging ──────────────────────────────────
+structlog==24.4.0
+
+# ─── Utils ────────────────────────────────────
+python-multipart==0.0.12
+passlib[bcrypt]==1.7.4
+
+# ─── Testing ──────────────────────────────────
+pytest==8.3.2
+pytest-asyncio==0.23.8

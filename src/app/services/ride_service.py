@@ -24,7 +24,7 @@ async def create_ride(
     Create a ride. Verifies driver approval, calculates
     distance via OSRM and fare via fare_engine.
     """
-    from app.services import osrm_service
+    from app.services import ors_service
     from app.services.fare_engine import fare_engine
 
     # 1. Driver must be approved
@@ -49,7 +49,7 @@ async def create_ride(
         )
 
     # 4. Get route from OSRM
-    route = await osrm_service.get_route(
+    route = await ors_service.get_route(
         src_lat=data.source_lat,
         src_lng=data.source_lng,
         dst_lat=data.dest_lat,
@@ -374,8 +374,27 @@ def build_ride_response(ride: Ride) -> dict:
     """Build ride response with driver_name and vehicle_info."""
     driver = ride.driver
     user   = driver.user if driver else None
+    
     return {
-        **ride.__dict__,
+        "id":                 ride.id,
+        "source_address":     ride.source_address,
+        "source_lat":         ride.source_lat,
+        "source_lng":         ride.source_lng,
+        "source_city":        ride.source_city,
+        "dest_address":       ride.dest_address,
+        "dest_lat":           ride.dest_lat,
+        "dest_lng":           ride.dest_lng,
+        "dest_city":          ride.dest_city,
+        "departure_time":     ride.departure_time,
+        "total_seats":        ride.total_seats,
+        "available_seats":    ride.available_seats,
+        "total_distance_km":  ride.total_distance_km,
+        "estimated_duration": ride.estimated_duration,
+        "route_geometry":    ride.route_geometry,
+        "total_fare":         ride.total_fare,
+        "per_seat_fare":      ride.per_seat_fare,
+        "status":             ride.status,
+        "created_at":         ride.created_at,
         "driver_name":  user.name if user else "Unknown",
         "vehicle_info": (
             f"{driver.vehicle_make} {driver.vehicle_model} · "

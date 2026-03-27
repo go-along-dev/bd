@@ -3,11 +3,10 @@ from pydantic_settings import BaseSettings
 from typing import List
 import json
 
+# Locate the .env file
 _env_file = Path(__file__).resolve().parent.parent.parent / ".env"
 
-
 class Settings(BaseSettings):
-
     # ─── App ──────────────────────────────────
     APP_ENV: str = "development"
     SECRET_KEY: str
@@ -26,8 +25,8 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str
     SUPABASE_JWT_SECRET: str
 
-    # ─── OSRM ─────────────────────────────────
-    OSRM_BASE_URL: str = "http://localhost:5000"
+    # ─── OpenRouteService ─────────────────────
+    ORS_API_KEY: str = ""
 
     # ─── FCM ──────────────────────────────────
     FCM_SERVER_KEY: str = ""
@@ -47,21 +46,29 @@ class Settings(BaseSettings):
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "goalong_admin_2024"
 
-    @property
-    def cors_origins(self) -> List[str]:
-        return json.loads(self.BACKEND_CORS_ORIGINS)
+    # ─── Razorpay ─────────────────────────────
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
 
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
 
+    @property
+    def cors_origins(self) -> List[str]:
+        if self.is_production:
+            return ["*"]
+        try:
+            return json.loads(self.BACKEND_CORS_ORIGINS)
+        except json.JSONDecodeError:
+            return ["http://localhost:8000"]
+
+    # This MUST be inside the Settings class
     model_config = {
         "env_file": str(_env_file),
         "extra": "ignore"
     }
-# ─── Razorpay ─────────────────────────────────
-RAZORPAY_KEY_ID:        str = ""
-RAZORPAY_KEY_SECRET:    str = ""
-RAZORPAY_WEBHOOK_SECRET: str = ""
 
+# Initialize the settings object
 settings = Settings()
